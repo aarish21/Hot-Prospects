@@ -14,19 +14,41 @@ struct ProspectsView: View {
         case none, contacted, uncontacted
     }
     
+    @State private var sort: Int = 0
     @State private var isShowingScanner = false
     let filter: FilterType
     @EnvironmentObject var prospects: Prospects
+    @State private var isSortedByName = false
     
     var body: some View {
         NavigationView{
             List{
-                ForEach(filteredProspects){ prospect in
+                ForEach(sortedFilteredProspects){ prospect in
+                    
                     VStack(alignment: .leading){
-                        Text(prospect.name)
-                            .font(.headline)
-                        Text(prospect.emailAddress)
-                            .foregroundColor(.secondary)
+                        if prospect.isContacted{
+                            HStack{
+                                VStack(alignment: .leading){
+                                    Text(prospect.name)
+                                        .font(.headline)
+                                    Text(prospect.emailAddress)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Label("", systemImage: "person.fill.checkmark")
+                            }
+                        }else{
+                            HStack{
+                                VStack(alignment: .leading){
+                                    Text(prospect.name)
+                                        .font(.headline)
+                                    Text(prospect.emailAddress)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Label("", systemImage: "person.fill.xmark")
+                            }
+                        }
                     }
                     .swipeActions {
                         if prospect.isContacted {
@@ -55,14 +77,35 @@ struct ProspectsView: View {
                     }
                 }
             }
+            
             .toolbar{
-                Button {
-                    isShowingScanner = true
-                } label: {
-                    Label("Scan", systemImage: "qrcode.viewfinder")
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Picker("sort", selection: $sort) {
+                            Text("By Name").tag(0)
+                            Text("Most Recent").tag(1)
+                           
+                        }.onChange(of: sort) { s in
+                            if s == 0{
+                                isSortedByName = true
+                            }else{
+                                isSortedByName = false
+                            }
+                        }
+                    } label: {
+                        Label("sort", systemImage: "arrow.up.arrow.down")
+                    }
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingScanner = true
+                    } label: {
+                        Label("Scan", systemImage: "qrcode.viewfinder")
+                    }                }
+               
                 
             }
+            
             .sheet(isPresented: $isShowingScanner){
                 CodeScannerView(codeTypes: [.qr], simulatedData: "Aarish\naarish.rahman21@gmail.com", completion: handleScan)
             }
@@ -70,6 +113,16 @@ struct ProspectsView: View {
         }
         
     }
+    var sortedFilteredProspects: [Prospect] {
+        if isSortedByName {
+            // by name
+            return filteredProspects.sorted(by: { $0.name < $1.name })
+        } else {
+            // by most recent
+            return filteredProspects.reversed()
+        }
+    }
+    
     var title: String {
         switch filter {
         case .none:
